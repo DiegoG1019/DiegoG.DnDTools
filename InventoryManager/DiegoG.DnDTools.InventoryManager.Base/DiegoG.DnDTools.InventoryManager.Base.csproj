@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>DiegoG.DnDTools.InventoryManager</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MessagePack" Version="2.5.140" />
+    <PackageReference Include="MessagePack.Annotations" Version="2.5.140" />
+    <PackageReference Include="MessagePackAnalyzer" Version="2.5.140">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Shared\DiegoG.DnDTools.Shared.Base\DiegoG.DnDTools.Shared.Base.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="DiegoG.REST.ASPNET" Version="1.1.1" />
+    <PackageReference Include="DiegoG.REST.Json" Version="1.0.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\InventoryManager\DiegoG.DnDTools.InventoryManager.Base\DiegoG.DnDTools.InventoryManager.Base.csproj" />
+    <ProjectReference Include="..\..\Services\DiegoG.DnDTools.Services.Data\DiegoG.DnDTools.Services.Data.csproj" />
+    <ProjectReference Include="..\..\Services\DiegoG.DnDTools.Services.DTO\DiegoG.DnDTools.Services.Common.csproj" />
+    <ProjectReference Include="..\..\Services\DiegoG.DnDTools.Services.EntityFramework\DiegoG.DnDTools.Services.EntityFramework.csproj" />
+    <ProjectReference Include="..\..\Services\Migrations\DiegoG.DnDTools.Services.EntityFramework.SQLite\DiegoG.DnDTools.Services.EntityFramework.SQLite.csproj" />
+    <ProjectReference Include="..\..\Services\Migrations\DiegoG.DnDTools.Services.EntityFramework.SQLServer\DiegoG.DnDTools.Services.EntityFramework.SQLServer.csproj" />
+    <ProjectReference Include="..\..\Shared\DiegoG.DnDTools.Shared.Base\DiegoG.DnDTools.Shared.Base.csproj" />
+  </ItemGroup>
+
+</Project>
