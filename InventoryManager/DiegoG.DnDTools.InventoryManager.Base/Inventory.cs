@@ -8,26 +8,35 @@ using MessagePack;
 using MessagePack.Formatters;
 namespace DiegoG.DnDTools.InventoryManager;
 
-public sealed class Inventory : IDnDInfoObject, IReadOnlyCollection<ItemDescription>, ICollection<ItemDescription>
+public class Inventory : IDnDEntityContainer<ItemDescription>
 {
-    private readonly HashSet<ItemDescription> items = [];
+    public Inventory() : this(new HashSet<ItemDescription>()) { }
 
-    public ContainerItemDescription? Container { get; set; }
+    protected Inventory(ISet<ItemDescription> set) 
+    {
+        Items = set ?? throw new ArgumentNullException(nameof(set));
+    }
 
-    public int? MaximumItems { get; set; }
+    public virtual ISet<ItemDescription> Items { get; set; }
 
-    public Mass StoredItemsTotalMass { get; }
+    public virtual ContainerItemDescription? Container { get; set; }
 
-    public Money StoredItemsTotalValue { get; }
+    public virtual int? MaximumItems { get; set; }
 
-    public bool? IsOverburdened
+    public virtual Mass StoredItemsTotalMass { get; }
+
+    public double StoredItemsTotalStandardWeight => StoredItemsTotalMass.ToStandard();
+
+    public virtual Money StoredItemsTotalValue { get; }
+
+    public virtual bool? IsOverburdened
     {
         get
         {
             var con = Container;
             return con is null
                 ? null
-                : StoredItemsTotalMass.ToStandard() > con.WeightCapacity?.ToStandard() || MaximumItems > Count;
+                : StoredItemsTotalStandardWeight > con.WeightCapacity?.ToStandard() || MaximumItems > Items.Count;
         }
     }
 
@@ -37,23 +46,5 @@ public sealed class Inventory : IDnDInfoObject, IReadOnlyCollection<ItemDescript
     
     public string? Notes { get; set; }
 
-    public ICollection<string>? Tags { get; set; }
-
-    public void Add(ItemDescription item) => items.Add(item);
-
-    public void Clear() => items.Clear();
-
-    public bool Contains(ItemDescription item) => items.Contains(item);
-
-    public void CopyTo(ItemDescription[] array, int arrayIndex) => items.CopyTo(array, arrayIndex);
-
-    public bool Remove(ItemDescription item) => items.Remove(item);
-
-    public int Count => items.Count;
-
-    public bool IsReadOnly => false;
-
-    public IEnumerator<ItemDescription> GetEnumerator() => items.GetEnumerator();
-
-    IEnumerator IEnumerable.GetEnumerator() => items.GetEnumerator();
+    public virtual ICollection<string>? Tags { get; set; }
 }

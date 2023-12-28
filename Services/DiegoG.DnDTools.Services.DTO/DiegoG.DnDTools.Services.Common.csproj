@@ -6,4 +6,13 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="DiegoG.REST.Core" Version="1.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\InventoryManager\DiegoG.DnDTools.InventoryManager.Base\DiegoG.DnDTools.InventoryManager.Base.csproj" />
+    <ProjectReference Include="..\DiegoG.DnDTools.Services.Utilities\DiegoG.DnDTools.Services.Utilities.csproj" />
+  </ItemGroup>
+
 </Project>

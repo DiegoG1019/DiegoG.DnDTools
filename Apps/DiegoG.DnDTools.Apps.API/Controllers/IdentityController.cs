@@ -1,139 +1,125 @@
-﻿//using System.Diagnostics;
-//using Microsoft.AspNetCore.Authorization;
-//using Microsoft.AspNetCore.Identity;
-//using Microsoft.AspNetCore.Mvc;
-//using Urbe.Programacion.AppSocial.Entities.Models;
-//using Urbe.Programacion.AppSocial.ModelServices;
-//using Urbe.Programacion.AppSocial.DataTransfer.Requests;
-//using Urbe.Programacion.Shared.API.Backend.Controllers;
-//using Urbe.Programacion.Shared.Common;
-//using Microsoft.AspNetCore.Cors;
-//using DiegoG.DnDTools.Services.Data;
+﻿using System.Diagnostics;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Cors;
+using DiegoG.DnDTools.Services.Data;
+using DiegoG.DnDTools.Services.Data.Repositories;
+using DiegoG.DnDTools.Services.Common.Requests;
+using DiegoG.DnDTools.Services.Common;
+using DiegoG.DnDTools.Services.Utilities;
 
-//namespace DiegoG.DnDTools.Apps.API.Controllers;
+namespace DiegoG.DnDTools.Apps.API.Controllers;
 
-//[ApiController]
-//[Route("/api/identity")]
-//public sealed class IdentityController : AppController
-//{
-//    private readonly UserManager<DnDToolsUser> UserManager;
-//    private readonly SignInManager<DnDToolsUser> SignInManager;
-//    private readonly ILogger<IdentityController> Logger;
-//    private readonly IUserRepository UserRepository;
+[ApiController]
+[Route("/api/identity")]
+public sealed class IdentityController
+    (IDnDToolsUserRepository userRepository, UserManager<DnDToolsUser> userManager, ILogger<IdentityController> logger, SignInManager<DnDToolsUser> signInManager) : AppController(userManager, logger)
+{
+    private readonly SignInManager<DnDToolsUser> SignInManager = signInManager ?? throw new ArgumentNullException(nameof(signInManager));
+    private readonly IDnDToolsUserRepository UserRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
 
-//    public IdentityController(IUserRepository userRepository, UserManager<DnDToolsUser> userManager, ILogger<IdentityController> logger, SignInManager<DnDToolsUser> signInManager)
-//    {
-//        UserRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
-//        UserManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
-//        SignInManager = signInManager ?? throw new ArgumentNullException(nameof(signInManager));
-//        Logger = logger ?? throw new ArgumentNullException(nameof(logger));
-//    }
+    [HttpPost]
+    public async Task<IActionResult> CreateEntity([FromBody] DnDToolsUserCreationModel creationModel)
+    {
+        var result = await UserRepository.CreateEntity(null, creationModel);
 
-//    [HttpGet("contest")]
-//    public IActionResult Contest()
-//        => BadRequest();
+        if (result.TryGetResult(out var created))
+        {
+            await UserRepository.SaveChanges();
+            var viewresult = await UserRepository.GetView(created, created);
+            return viewresult.TryGetResult(out var view) ? Ok(view) : FailureResult(viewresult);
+        }
 
-//    [HttpPost]
-//    public async Task<IActionResult> CreateEntity([FromBody] UserCreationModel creationModel)
-//    {
-//        var result = await UserRepository.Create(null, creationModel);
+        return FailureResult(result);
+    }
 
-//        if (result.TryGetResult(out var created))
-//        {
-//            await UserRepository.SaveChanges();
-//            var viewresult = await UserRepository.GetSelfView(created);
-//            return viewresult.TryGetResult(out var view) ? Ok(view) : FailureResult(viewresult);
-//        }
+    [HttpPut]
+    public async Task<IActionResult> Login([FromBody] DnDToolsUserLoginModel? userLogin)
+    {
+        ErrorList list = new();
 
-//        return FailureResult(result);
-//    }
+        if (userLogin is null)
+        {
+            list.AddEmptyBody();
+            return BadRequest(list.Errors);
+        }
 
-//    [HttpPut]
-//    public async Task<IActionResult> Login([FromBody] UserLoginModel? userLogin)
-//    {
-//        ErrorList list = new();
+        if (string.IsNullOrWhiteSpace(userLogin.UsernameOrEmail))
+            list.AddBadUsername(userLogin.UsernameOrEmail ?? "");
 
-//        if (userLogin is null)
-//        {
-//            list.AddError(ErrorMessages.EmptyBody());
-//            return BadRequest(list.Errors);
-//        }
+        if (string.IsNullOrWhiteSpace(userLogin.Password))
+            list.AddBadPassword();
 
-//        if (string.IsNullOrWhiteSpace(userLogin.UserNameOrEmail))
-//            list.AddError(ErrorMessages.BadUsername(userLogin.UserNameOrEmail ?? ""));
+        if (list.Count > 0)
+            return BadRequest(list.Errors);
 
-//        if (string.IsNullOrWhiteSpace(userLogin.Password))
-//            list.AddError(ErrorMessages.BadPassword());
+        Debug.Assert(string.IsNullOrWhiteSpace(userLogin.UsernameOrEmail) is false);
+        Debug.Assert(string.IsNullOrWhiteSpace(userLogin.Password) is false);
+        var user = await UserManager.FindByEmailAsync(userLogin.UsernameOrEmail) ?? await UserManager.FindByNameAsync(userLogin.UsernameOrEmail);
+        if (user is null)
+        {
+            list.AddUserNotFound(userLogin.UsernameOrEmail);
+            return NotFound(list.Errors);
+        }
 
-//        if (list.Count > 0)
-//            return BadRequest(list.Errors);
+        Logger.LogInformation("Attempting to log in as user {user} ({userid})", userLogin.UsernameOrEmail, user.Id);
 
-//        Debug.Assert(string.IsNullOrWhiteSpace(userLogin.UserNameOrEmail) is false);
-//        Debug.Assert(string.IsNullOrWhiteSpace(userLogin.Password) is false);
-//        var user = await UserManager.FindByEmailAsync(userLogin.UserNameOrEmail) ?? await UserManager.FindByNameAsync(userLogin.UserNameOrEmail);
-//        if (user is null)
-//        {
-//            list.AddError(ErrorMessages.UserNotFound(userLogin.UserNameOrEmail));
-//            return NotFound(list.Errors);
-//        }
+        var result = await SignInManager.PasswordSignInAsync(user, userLogin.Password, true, false);
+        if (result.Succeeded)
+        {
+            Logger.LogInformation("Succesfully logged in as user {user} ({userid})", userLogin.UsernameOrEmail, user.Id);
+            var viewresult = await UserRepository.GetView(user, user);
+            return viewresult.TryGetResult(out var view) ? Ok(view) : FailureResult(viewresult);
+        }
+        else if (result.IsLockedOut)
+        {
+            Logger.LogInformation("Could not log in as user {user} ({userid}), because they're locked out", user.UserName!, user.Id);
+            list.AddLoginLockedOut(user.UserName!);
+            return Forbidden(list.Errors);
+        }
+        else if (result.RequiresTwoFactor)
+        {
+            Logger.LogInformation("Could not log in as user {user} ({userid}), because they require 2FA", user.UserName!, user.Id);
+            list.AddLoginRequires("2FA", user.UserName!);
+            return Forbidden(list.Errors);
+        }
+        else if (result.IsNotAllowed)
+        {
+            Logger.LogInformation("Could not log in as user {user} ({userid}), because they're not allowed to", user.UserName!, user.Id);
+            list.AddActionDisallowed("LogIn");
+            return Forbidden(list.Errors);
+        }
+        else
+        {
+            Logger.LogInformation("Could not log in as user {user} ({userid})", user.UserName!, user.Id);
+            list.AddBadLogin();
+            return BadRequest(list.Errors);
+        }
+    }
 
-//        Logger.LogInformation("Attempting to log in as user {user} ({userid})", userLogin.UserNameOrEmail, user.Id);
+    [Authorize]
+    [HttpDelete]
+    public async Task<IActionResult> Logout()
+    {
+        await SignInManager.SignOutAsync();
+        return Ok();
+    }
 
-//        var result = await SignInManager.PasswordSignInAsync(user, userLogin.Password, true, false);
-//        if (result.Succeeded)
-//        {
-//            Logger.LogInformation("Succesfully logged in as user {user} ({userid})", userLogin.UserNameOrEmail, user.Id);
-//            var viewresult = await UserRepository.GetSelfView(user);
-//            return viewresult.TryGetResult(out var view) ? Ok(view) : FailureResult(viewresult);
-//        }
-//        else if (result.IsLockedOut)
-//        {
-//            Logger.LogInformation("Could not log in as user {user} ({userid}), because they're locked out", user.UserName!, user.Id);
-//            list.AddError(ErrorMessages.LoginLockedOut(user.UserName!));
-//            return Forbidden(list.Errors);
-//        }
-//        else if (result.RequiresTwoFactor)
-//        {
-//            Logger.LogInformation("Could not log in as user {user} ({userid}), because they require 2FA", user.UserName!, user.Id);
-//            list.AddError(ErrorMessages.LoginRequires("2FA", user.UserName!));
-//            return Forbidden(list.Errors);
-//        }
-//        else if (result.IsNotAllowed)
-//        {
-//            Logger.LogInformation("Could not log in as user {user} ({userid}), because they're not allowed to", user.UserName!, user.Id);
-//            list.AddError(ErrorMessages.ActionDisallowed("LogIn"));
-//            return Forbidden(list.Errors);
-//        }
-//        else
-//        {
-//            Logger.LogInformation("Could not log in as user {user} ({userid})", user.UserName!, user.Id);
-//            list.AddError(ErrorMessages.BadLogin());
-//            return BadRequest(list.Errors);
-//        }
-//    }
+    [Authorize]
+    [HttpDelete("{userId}")]
+    public async Task<IActionResult> DeleteUser(Guid userId)
+    {
+        var u = await UserManager.GetUserAsync(User);
+        if (u is null || string.Equals(u.Email, "admin@admin.com", StringComparison.OrdinalIgnoreCase) is false)
+            return Unauthorized();
 
-//    [Authorize]
-//    [HttpDelete]
-//    public async Task<IActionResult> Logout()
-//    {
-//        await SignInManager.SignOutAsync();
-//        return Ok();
-//    }
+        var findResult = await UserRepository.FindEntity(u, userId);
+        if (findResult.TryGetResult(out var entity) is false)
+            return NotFound();
 
-//    [Authorize]
-//    [HttpDelete("{userId}")]
-//    public async Task<IActionResult> DeleteUser(Guid userId)
-//    {
-//        var u = await UserManager.GetUserAsync(User);
-//        if (u is null || string.Equals(u.Email, "admin@admin.com", StringComparison.OrdinalIgnoreCase) is false)
-//            return Unauthorized();
+        var result = await UserRepository.DeleteEntity(u, entity);
 
-//        var entity = await UserRepository.Find(userId);
-//        if (entity is null)
-//            return NotFound();
-
-//        var result = await UserRepository.Delete(u, entity);
-
-//        return result.IsSuccess ? Ok() : FailureResult(result);
-//    }
-//}
+        return result.IsSuccess ? Ok() : FailureResult(result);
+    }
+}

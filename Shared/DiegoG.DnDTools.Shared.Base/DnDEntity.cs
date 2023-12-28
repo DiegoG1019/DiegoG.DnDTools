@@ -12,7 +12,7 @@ public class DnDEntity : IDnDInfoObject, ICloneable, IDnDFilterableInfo
     public string? Notes { get; set; }
     public virtual ICollection<string>? Tags { get; set; }
 
-    public string EntityType { get; }
+    public string EntityType { get; protected init; }
 
     public virtual DnDEntity DeepClone()
     {

@@ -1,6 +1,6 @@
 @DiegoG.DnDTools.Apps.API_HostAddress = http://localhost:5009
 
-GET {{DiegoG.DnDTools.Apps.API_HostAddress}}/weatherforecast/
+GET {{DiegoG.DnDTools.Apps.API_HostAddress}}/api/
 Accept: application/json
 
 ###

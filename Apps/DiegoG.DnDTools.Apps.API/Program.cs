@@ -1,8 +1,14 @@
 
+using System.Reflection.Emit;
 using DiegoG.DnDTools.Apps.API.Configuration;
 using DiegoG.DnDTools.Apps.API.Filters;
+using DiegoG.DnDTools.Apps.API.Options;
 using DiegoG.DnDTools.Apps.API.Workers;
+using DiegoG.DnDTools.InventoryManager;
 using DiegoG.DnDTools.Services.Common;
+using DiegoG.DnDTools.Services.Common.Requests;
+using DiegoG.DnDTools.Services.Common.Responses;
+using DiegoG.DnDTools.Services.Common.Responses.Views;
 using DiegoG.DnDTools.Services.Data;
 using DiegoG.DnDTools.Services.EntityFramework;
 using DiegoG.REST.ASPNET;
@@ -34,6 +40,7 @@ public static class Program
             throw new InvalidDataException("No CORS Origins configured");
 
         services.AddControllers();
+
         services.AddHostedService<BackgroundTaskStoreSweeper>();
         services.AddControllersWithViews();
         services.AddRazorPages();
@@ -48,19 +55,22 @@ public static class Program
         ));
 
         services.AddEndpointsApiExplorer();
-        services.AddSwaggerGen(o
-            => o.AddSecurityDefinition("token", new OpenApiSecurityScheme()
+        services.AddSwaggerGen(o =>
             {
-                In = ParameterLocation.Header,
-                Description = "Please log in using the Identity controller",
-                Name = "Identity Session Token",
-                Type = SecuritySchemeType.ApiKey
+                o.AddSecurityDefinition("token", new OpenApiSecurityScheme()
+                {
+                    In = ParameterLocation.Header,
+                    Description = "Please log in using the Identity controller",
+                    Name = "Identity Session Token",
+                    Type = SecuritySchemeType.ApiKey
+                });
             }
-        ));
+        );
 
         services.AddRESTObjectSerializer(
             x => new JsonRESTSerializer<APIResponseCode>(x.GetRequiredService<IOptions<JsonOptions>>().Value.SerializerOptions));
 
+        // The response filter NEEDS to go last, specifically, after OData or any other result filter
         services.AddMvc(o =>
         {
             o.Filters.Add<SignInRefreshFilter<DnDToolsUser>>();
@@ -68,7 +78,7 @@ public static class Program
         });
 
         var dbconf = builder.Configuration.GetRequiredSection("DatabaseConfig").GetRequiredSection("DnDToolsContext").Get<DatabaseConfiguration?>()
-            ?? throw new InvalidDataException("SocialConfig parameter under DatabaseConfig section returned null");
+            ?? throw new InvalidDataException("DnDToolsContext parameter under DatabaseConfig section returned null");
 
         if (dbconf.DatabaseType is DatabaseType.SQLServer)
         {
@@ -112,10 +122,18 @@ public static class Program
         .AddDefaultTokenProviders()
         .AddEntityFrameworkStores<DnDToolsContext>();
 
+        var bearerTokenConf 
+            = builder.Configuration.GetRequiredSection("DatabaseConfig").GetRequiredSection("DnDToolsContext").Get<BearerTokenOptions?>()
+            ?? throw new InvalidDataException("DnDToolsContext parameter under DatabaseConfig section returned null");
+
         services.AddAuthentication()
             .AddBearerToken(o =>
             {
-#error Configure the token
+                o.ClaimsIssuer = bearerTokenConf.ClaimsIssuer;
+                if (bearerTokenConf.BearerTokenExpiration is TimeSpan bte)
+                    o.BearerTokenExpiration = bte;
+                if (bearerTokenConf.RefreshTokenExpiration is TimeSpan rte)
+                    o.RefreshTokenExpiration = rte;
             });
 
         services.AddDnDToolsEntityFrameworkServices();

@@ -1,4 +1,5 @@
 ﻿using DiegoG.DnDTools.InventoryManager.Measures;
+using DiegoG.DnDTools.InventoryManager.ReadOnly;
 
 namespace DiegoG.DnDTools.InventoryManager;
 
@@ -16,6 +17,9 @@ public class FillableContainerItemDescription : ContainerItemDescription
     }
 
     public virtual Mass? WeightWhenFull { get; set; }
+
+    public override ReadOnlyFillableContainerItemDescription ToReadOnly()
+        => new(this);
 
     public override FillableContainerItemDescription DeepClone() 
         => (FillableContainerItemDescription)base.DeepClone();

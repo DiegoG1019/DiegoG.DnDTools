@@ -1,16 +1,20 @@
-﻿using DiegoG.DnDTools.Services.Common;
+﻿using System.Net;
+using DiegoG.DnDTools.Services.Common;
 using DiegoG.DnDTools.Services.Data;
 using DiegoG.DnDTools.Services.Data.Internal;
+using DiegoG.DnDTools.Services.Utilities;
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace DiegoG.DnDTools.Apps.API.Controllers;
 
 public abstract class CreateReadDeleteController<TEntity, TCreationModel>(
     ICreateReadDeleteRepository<TEntity, TCreationModel> entityRepository,
-    UserManager<DnDToolsUser> userManager
-) : ReadController<TEntity>(entityRepository, userManager)
+    UserManager<DnDToolsUser> userManager,
+    ILogger<CreateReadDeleteController<TEntity, TCreationModel>> logger
+) : ReadController<TEntity>(entityRepository, userManager, logger)
 {
     protected override ICreateReadDeleteRepository<TEntity, TCreationModel> Repository
         => (ICreateReadDeleteRepository<TEntity, TCreationModel>)base.Repository;
@@ -24,8 +28,8 @@ public abstract class CreateReadDeleteController<TEntity, TCreationModel>(
         if (result.TryGetResult(out var created))
         {
             await Repository.SaveChanges();
-            var view = await Repository.GetView(u, created);
-            return view is not null ? Ok(view) : NotFound();
+            var success = await Repository.GetView(u, created);
+            return success.TryGetResult(out var view) ? StatusCode((int)HttpStatusCode.Created, view) : FailureResult(success);
         }
 
         return FailureResult(result);

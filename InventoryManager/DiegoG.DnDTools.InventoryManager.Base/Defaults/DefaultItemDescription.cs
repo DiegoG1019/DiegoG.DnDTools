@@ -1,19 +1,8 @@
-﻿namespace DiegoG.DnDTools.InventoryManager.Defaults;
+﻿using DiegoG.DnDTools.InventoryManager.ReadOnly;
 
-public class DefaultItemDescription
-{
-    public DefaultItemDescription(Func<ItemDescription> itemFactory, string? source = null)
-    {
-        ItemFactory = itemFactory ?? throw new ArgumentNullException(nameof(itemFactory));
-        Source = source;
+namespace DiegoG.DnDTools.InventoryManager.Defaults;
 
-        var item = ItemFactory();
-        Name = item.Name;
-        Description = item.Description;
-    }
-
-    public Func<ItemDescription> ItemFactory { get; }
-    public string? Name { get; }
-    public string? Description { get; }
-    public string? Source { get; }
-}
+public readonly record struct DefaultItemDescription(
+    ReadOnlyItemDescription ItemDescription,
+    string? Source
+);

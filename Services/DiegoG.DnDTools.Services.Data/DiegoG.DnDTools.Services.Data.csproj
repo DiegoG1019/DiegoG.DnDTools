@@ -13,7 +13,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\InventoryManager\DiegoG.DnDTools.InventoryManager.Base\DiegoG.DnDTools.InventoryManager.Base.csproj" />
+    <ProjectReference Include="..\..\Shared\DiegoG.DnDTools.Shared.Utilities\DiegoG.DnDTools.Shared.Utilities.csproj" />
     <ProjectReference Include="..\DiegoG.DnDTools.Services.DTO\DiegoG.DnDTools.Services.Common.csproj" />
+    <ProjectReference Include="..\DiegoG.DnDTools.Services.Utilities\DiegoG.DnDTools.Services.Utilities.csproj" />
   </ItemGroup>
 
 </Project>

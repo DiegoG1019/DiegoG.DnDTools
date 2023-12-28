@@ -2,7 +2,6 @@
 using System.Collections.Frozen;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using DiegoG.DnDTools.InventoryManager.Utilities;
 using DiegoG.DnDTools.Utilities;
 
 namespace DiegoG.DnDTools.InventoryManager.Measures;
